@@ -1,4 +1,5 @@
 {
+  "engines": { "node": "0.8.4" },
   "name": "wikstrom.in",
   "version": "0.0.1",
   "description": "My site",
