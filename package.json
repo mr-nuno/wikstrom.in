@@ -1,6 +1,6 @@
 {
   "engines": {
-    "node": "0.10.28"
+    "node": "0.10.29"
   },
   "name": "wikstrom.in",
   "version": "0.0.1",
