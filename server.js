@@ -49,6 +49,6 @@ app.get('/api/stats/:game/:nickname', function(req,res) {
 
 //http://www.easports.com/services/statscentral/getdata?platformTag=hockey-nhl-14-PS3&mode=solo&handle=mr_nuno
 
-var server = app.listen(80, function() {
+/*var server = app.listen(80, function() {
     console.log('Listening on port %d', server.address().port);
-});
+});*/
