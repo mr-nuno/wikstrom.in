@@ -1,5 +1,7 @@
 {
-  "engines": { "node": "0.10.28" },
+  "engines": {
+    "node": "0.10.28"
+  },
   "name": "wikstrom.in",
   "version": "0.0.1",
   "description": "My site",
@@ -23,7 +25,6 @@
   },
   "homepage": "https://github.com/mr-nuno/wikstrom.in",
   "dependencies": {
-    "express": "^4.8.7",
-    "httpsync": "0.0.8"
+    "express": "^4.8.7"
   }
 }

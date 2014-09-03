@@ -27,7 +27,6 @@ var express = require('express');
 var http = require('http');
 var app = express();
 var path = require('path');
-var httpsync = require('httpsync');
 
 app.set('port', process.env.PORT || 8080)
 app.use(express.static(path.join(__dirname, 'public')));
@@ -41,15 +40,15 @@ app.get('/', function(req,res) {
 
 app.get('/api/stats/:game/:nickname', function(req,res) {
 
-	var request = httpsync.get({ url : "http://www.easports.com/services/statscentral/getdata?platformTag=hockey-" + req.params.game +"-PS3&mode=versus&handle=" + req.params.nickname});
+	/*var request = httpsync.get({ url : "http://www.easports.com/services/statscentral/getdata?platformTag=hockey-" + req.params.game +"-PS3&mode=versus&handle=" + req.params.nickname});
 	var response = request.end();
-	res.type('application/json');
-	res.send(response.data.toString());
+	res.type('application/json');*/
+	res.send('{}');
 
 });
 
 //http://www.easports.com/services/statscentral/getdata?platformTag=hockey-nhl-14-PS3&mode=solo&handle=mr_nuno
 
-var server = app.listen(8080, function() {
+var server = app.listen(80, function() {
     console.log('Listening on port %d', server.address().port);
 });
