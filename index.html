@@ -87,7 +87,7 @@
     <script id="temp-row-template" type="x-tmpl-mustache">
       {{#temperatures}}
         <tr>
-          <td>{{day}}</td>
+          <td>{{formatted}}</td>
           <td>{{temp}}</td>
         </tr>
       {{/temperatures}}
@@ -104,6 +104,7 @@
 
       $(function(){
 
+        moment.locale("sv");
         var raw = [];
 
         var ctx = $("#temp-chart").get(0).getContext("2d");
@@ -119,7 +120,8 @@
           var d = [];
           for(var i = 0; i < data.length; i++){
             var o = data[i];
-            d.push({ m: moment.unix(o.timestamp), temp: o.temp });
+            var m = moment.unix(o.timestamp);
+            if (i % 100 == 0) d.push({ m: m, temp: o.temp, formatted: m.format("YYYY-MM-DD HH:mm:ss")  });
           }
           return d;
         };
@@ -142,42 +144,28 @@
           return Enumerable.From(t).Min();
         };
 
-        var self = this;
-        var temps = [];
-        var labels = [1,2,3,4,5,6,7,8,9,10];
+        var createLabelsForMonth = function(t) {
+          var lbl = [];
 
-        $.ajax({
-          url: "http://aepi.homeserver.com",
-          dataType: "json",
-          success: function(data) {
+          for(var i = 0; i < t.length; i++) {
 
-            var temperatures = processData(data);
+            var item = t[i];
+            if (i == 0) lbl.push(item.m.format("YYYY-MM-DD"));
+            else{
+              var pv = t[i - 1];
+              if (pv.m.date() != item.m.date()) lbl.push(item.m.format("YYYY-MM-DD"));
+              else lbl.push(" ");
+            }
 
-            for(var i = 1; i < 13; i++) {
-
-              var tempsForMonth = Enumerable.From(temperatures).Where(function (item) { 
-                return item.m.month() == i; 
-              }).ToArray();
-
-              temps.push({
-                temps :tempsForMonth,
-                raw: Enumerable.From(tempsForMonth).Select(function(item) { return item.temp; }).ToArray(), 
-                month: i, 
-                avg: calculateAverage(tempsForMonth), 
-                max: calculateMax(tempsForMonth), 
-                min: calculateMin(tempsForMonth)
-              });
-
-            };
-
-            //render(processData(data));
           }
-        });
+          
+          return lbl;
+        };
 
-        $("#months").change(function(){
-          var month = parseInt($(this).val());
+        var renderMonthGraph = function(month) {
+
           var d = {
-          labels: labels,
+          labels: temps[month].labels,
           datasets: [
                 {
                     label: "Temperatures",
@@ -191,7 +179,45 @@
                 }]
           };
 
-          var myLineChart = new Chart(ctx).Line(d, {});
+          var myLineChart = new Chart(ctx).Line(d, { responsive: true });
+
+        };
+
+        var self = this;
+        var temps = [];
+
+        $.ajax({
+          url: "http://aepi.homeserver.com",
+          dataType: "json",
+          success: function(data) {
+
+            var temperatures = processData(data);
+
+            for(var i = 0; i < 12; i++) {
+
+              var tempsForMonth = Enumerable.From(temperatures).Where(function (item) { 
+                return item.m.month() == i; 
+              }).ToArray();
+
+              temps.push({
+                temps :tempsForMonth,
+                raw: Enumerable.From(tempsForMonth).Select(function(item) { return item.temp; }).ToArray(), 
+                month: i, 
+                labels: createLabelsForMonth(tempsForMonth),
+                avg: calculateAverage(tempsForMonth), 
+                max: calculateMax(tempsForMonth), 
+                min: calculateMin(tempsForMonth)
+              });
+
+            };
+
+            $("#months").val(moment().month());
+            $("#months").change();
+          }
+        });
+
+        $("#months").change(function(){
+          renderMonthGraph(parseInt($(this).val()));
         });
 
       });
