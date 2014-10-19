@@ -50,17 +50,28 @@
 
     <div class="row">
       <div class="small-6 large-12 columns"><hr/>
-          <h4>Header</h4>
-          <p class="panel radius">
-            Fusce ullamcorper mauris in eros dignissim molestie posuere felis blandit. Aliquam erat volutpat. Mauris ultricies posuere vehicula. Sed sit amet posuere erat. Quisque in ipsum non augue euismod dapibus non et eros.
-          </p>
-      </div>
+          <h4>Temperatur</h4>
+          <select id="months">
+            <option value="0">Januari</option>
+            <option value="1">Februari</option>
+            <option value="2">Mars</option>
+            <option value="3">April</option>
+            <option value="4">Maj</option>
+            <option value="5">Juni</option>
+            <option value="6">Juli</option>
+            <option value="7">Augusti</option>
+            <option value="8">September</option>
+            <option value="9">Oktober</option>
+            <option value="10">November</option>
+            <option value="11">December</option>
+          </select>
+          <canvas id="temp-chart" width="800" height="600"></canvas>
 
-      <div class="small-6 large-12 columns"><hr/>
-        <h4>Header</h4>
-        <p class="panel radius">
-          Fusce ullamcorper mauris in eros dignissim molestie posuere felis blandit. Aliquam erat volutpat. Mauris ultricies posuere vehicula. Sed sit amet posuere erat. Quisque in ipsum non augue euismod dapibus non et eros.
-        </p>
+          <table id="temp-container">
+
+
+
+          </table>
       </div>
     </div>
 
@@ -73,10 +84,118 @@
       </div>
     </footer>
     
+    <script id="temp-row-template" type="x-tmpl-mustache">
+      {{#temperatures}}
+        <tr>
+          <td>{{day}}</td>
+          <td>{{temp}}</td>
+        </tr>
+      {{/temperatures}}
+    </script>
+
+    <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.8.3/moment-with-locales.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/mustache.js/0.8.1/mustache.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/Chart.js/0.2.0/Chart.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/linq.js/2.2.0.2/linq.min.js"></script>
     <script src="js/vendor/jquery.js"></script>
     <script src="js/foundation.min.js"></script>
     <script>
       $(document).foundation();
+
+      $(function(){
+
+        var raw = [];
+
+        var ctx = $("#temp-chart").get(0).getContext("2d");
+
+        var render = function(data) {
+          var template = $('#temp-row-template').html();
+          Mustache.parse(template);   // optional, speeds up future uses
+          var rendered = Mustache.render(template, { temperatures: data });
+          $('#temp-container').html(rendered);
+        };
+
+        var processData = function(data) {
+          var d = [];
+          for(var i = 0; i < data.length; i++){
+            var o = data[i];
+            d.push({ m: moment.unix(o.timestamp), temp: o.temp });
+          }
+          return d;
+        };
+
+        var calculateAverage = function(temps) {
+          var t = Enumerable.From(temps).Select(function(item) { return item.temp; }).ToArray();
+          if (t.length == 0) return 0;
+          return Enumerable.From(t).Sum() / t.length;
+        };
+
+        var calculateMax = function(temps) {
+          var t = Enumerable.From(temps).Select(function(item) { return item.temp; }).ToArray();
+          if (t.length == 0) return 0;
+          return Enumerable.From(t).Max();
+        };
+
+        var calculateMin = function(temps) {
+          var t = Enumerable.From(temps).Select(function(item) { return item.temp; }).ToArray();
+          if (t.length == 0) return 0;
+          return Enumerable.From(t).Min();
+        };
+
+        var self = this;
+        var temps = [];
+        var labels = [1,2,3,4,5,6,7,8,9,10];
+
+        $.ajax({
+          url: "http://aepi.homeserver.com",
+          dataType: "json",
+          success: function(data) {
+
+            var temperatures = processData(data);
+
+            for(var i = 1; i < 13; i++) {
+
+              var tempsForMonth = Enumerable.From(temperatures).Where(function (item) { 
+                return item.m.month() == i; 
+              }).ToArray();
+
+              temps.push({
+                temps :tempsForMonth,
+                raw: Enumerable.From(tempsForMonth).Select(function(item) { return item.temp; }).ToArray(), 
+                month: i, 
+                avg: calculateAverage(tempsForMonth), 
+                max: calculateMax(tempsForMonth), 
+                min: calculateMin(tempsForMonth)
+              });
+
+            };
+
+            //render(processData(data));
+          }
+        });
+
+        $("#months").change(function(){
+          var month = parseInt($(this).val());
+          var d = {
+          labels: labels,
+          datasets: [
+                {
+                    label: "Temperatures",
+                    fillColor: "rgba(220,220,220,0.2)",
+                    strokeColor: "rgba(220,220,220,1)",
+                    pointColor: "rgba(220,220,220,1)",
+                    pointStrokeColor: "#fff",
+                    pointHighlightFill: "#fff",
+                    pointHighlightStroke: "rgba(220,220,220,1)",
+                    data: temps[month].raw
+                }]
+          };
+
+          var myLineChart = new Chart(ctx).Line(d, {});
+        });
+
+      });
+
     </script>
   </body>
 </html>
