@@ -49,17 +49,13 @@
     </nav>
 
     <div class="row">
-      <div class="small-6 large-12 columns">
+      <div class="small-12 medium-12 large-12 columns">
         <h4>Devices</h4>
-        <table id="device-container">
-
-
-
-        </table>
+        <table id="device-container"></table>
       </div>
     </div>
     <div class="row">
-      <div class="small-6 large-12 columns">
+      <div class="small-12 medium-12 large-12 columns">
           <h4>Temperatur</h4>
           <select id="months">
             <option value="0">Januari</option>
@@ -77,16 +73,12 @@
           </select>
           <canvas id="temp-chart" width="800" height="600"></canvas>
 
-          <table id="temp-container">
-
-
-
-          </table>
+          <table id="temp-container"></table>
       </div>
     </div>
 
     <footer class="row">
-      <div class="large-12 columns"><hr/>
+      <div class="small-12 medium-12 large-12 columns"><hr/>
           <div class="row">
      
 
@@ -106,10 +98,15 @@
     <script id="device-row-template" type="x-tmpl-mustache">
       {{#devices}}
         <tr>
-          <td>{{id}}</td>
           <td>{{name}}</td>
-          <td>{{status}}</td>
-          <td><a data-id="{{id}}" data-action="{{status}}" class="device-button">Activate</a></td>
+          <td>
+
+            <div class="switch tiny">
+              <input {{#on}}checked="checked"{{/on}} class="device-button" id="{{id}}-device-button" type="checkbox" data-id="{{id}}" data-on="{{on}}">
+              <label for="{{id}}-device-button"></label>
+            </div> 
+
+          </td>
         </tr>
       {{/devices}}
     </script>
@@ -130,7 +127,8 @@
 
         var ctx = $("#temp-chart").get(0).getContext("2d");
 
-        var activateDevice = function(id, action) { 
+        var activateDevice = function(id, on) {
+          var action = on ? "off" : "on"; 
           $.ajax({
             url: "http://aepi.homeserver.com:8000/device/" +id+"/"+action,
             type: "PUT",
@@ -204,24 +202,7 @@
           $.ajax({
             url: "http://aepi.homeserver.com:8000/device",
             success: function(data) { 
-              var devices = [];
-              for(var i = 0; i < 10; i++){
-                var regEx = new RegExp("["+ i +"].Nexa:(.+)", "g");
-                var s = regEx.exec(data);
-                if (s) {
-                  var arr = s[0].replace(/\s+/g, ' ').split(' ');
-                  
-                  var device = { 
-                    id: arr.length > 0 ? arr[0] : 0,
-                    name:  arr.length > 1 ? arr[1] : 0,
-                    status: arr.length > 2 ? arr[2] : ""
-                  };
-
-                  devices.push(device);
-                }
-
-                renderDevices(devices);
-              }
+              renderDevices(data);
             }
           });
         };
@@ -285,12 +266,12 @@
           renderMonthGraph(parseInt($(this).val()));
         });
 
-        $(document).on("click", "a.device-button", function(){
+        $(document).on("click", "input.device-button", function(){
         
           var id = $(this).data("id");
-          var action = $(this).data("action");
+          var on = $(this).data("on");
 
-          activateDevice(id, action == "OFF" ? "on" : "off");
+          activateDevice(id, on);
 
         });
 
