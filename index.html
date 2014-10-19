@@ -49,7 +49,17 @@
     </nav>
 
     <div class="row">
-      <div class="small-6 large-12 columns"><hr/>
+      <div class="small-6 large-12 columns">
+        <h4>Devices</h4>
+        <table id="device-container">
+
+
+
+        </table>
+      </div>
+    </div>
+    <div class="row">
+      <div class="small-6 large-12 columns">
           <h4>Temperatur</h4>
           <select id="months">
             <option value="0">Januari</option>
@@ -93,6 +103,17 @@
       {{/temperatures}}
     </script>
 
+    <script id="device-row-template" type="x-tmpl-mustache">
+      {{#devices}}
+        <tr>
+          <td>{{id}}</td>
+          <td>{{name}}</td>
+          <td>{{status}}</td>
+          <td><a data-id="{{id}}" data-action="{{status}}" class="device-button">Activate</a></td>
+        </tr>
+      {{/devices}}
+    </script>
+
     <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.8.3/moment-with-locales.min.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/mustache.js/0.8.1/mustache.min.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/Chart.js/0.2.0/Chart.min.js"></script>
@@ -109,11 +130,28 @@
 
         var ctx = $("#temp-chart").get(0).getContext("2d");
 
+        var activateDevice = function(id, action) { 
+          $.ajax({
+            url: "http://aepi.homeserver.com:8000/device/" +id+"/"+action,
+            type: "PUT",
+            success: function(data) { 
+              fetchDevices();
+            }
+          });
+        }
+
         var render = function(data) {
           var template = $('#temp-row-template').html();
           Mustache.parse(template);   // optional, speeds up future uses
           var rendered = Mustache.render(template, { temperatures: data });
           $('#temp-container').html(rendered);
+        };
+
+        var renderDevices = function(data) {
+          var template = $('#device-row-template').html();
+          Mustache.parse(template);   // optional, speeds up future uses
+          var rendered = Mustache.render(template, { devices: data });
+          $('#device-container').html(rendered);
         };
 
         var processData = function(data) {
@@ -160,6 +198,32 @@
           }
           
           return lbl;
+        };
+
+        var fetchDevices = function(){ 
+          $.ajax({
+            url: "http://aepi.homeserver.com:8000/device",
+            success: function(data) { 
+              var devices = [];
+              for(var i = 0; i < 10; i++){
+                var regEx = new RegExp("["+ i +"].Nexa:(.+)", "g");
+                var s = regEx.exec(data);
+                if (s) {
+                  var arr = s[0].replace(/\s+/g, ' ').split(' ');
+                  
+                  var device = { 
+                    id: arr.length > 0 ? arr[0] : 0,
+                    name:  arr.length > 1 ? arr[1] : 0,
+                    status: arr.length > 2 ? arr[2] : ""
+                  };
+
+                  devices.push(device);
+                }
+
+                renderDevices(devices);
+              }
+            }
+          });
         };
 
         var renderMonthGraph = function(month) {
@@ -213,11 +277,21 @@
 
             $("#months").val(moment().month());
             $("#months").change();
+            fetchDevices();
           }
         });
 
         $("#months").change(function(){
           renderMonthGraph(parseInt($(this).val()));
+        });
+
+        $(document).on("click", "a.device-button", function(){
+        
+          var id = $(this).data("id");
+          var action = $(this).data("action");
+
+          activateDevice(id, action == "OFF" ? "on" : "off");
+
         });
 
       });
